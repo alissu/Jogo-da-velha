@@ -8,43 +8,20 @@ const App: React.FC = () => {
   );
 }
 
-const Square: React.FC<{value: string | null; onClick: () => void;}> = props => {
+const Square: React.FC<{ value: string | null; onClick: () => void; }> = props => {
   return (<button className='sqaure' onClick={() => props.onClick()}>
     {props.value}
   </button>);
 }
 
-const Board: React.FC = () => {
+const Board: React.FC<{ squares: null[] | string[]; onClick: (pos: number) => void }> = props => {
   //TODO: criar interface, ou dois estados para clean code
-  const [gameState, setGameState] = React.useState<{
-    squares: null[] | string[];
-    xIsNext: boolean;
-  }>({
-    squares: Array(9).fill(null),
-    xIsNext: true
-  });
-
-  const handleClick = (pos: number): void => {
-    const squaresCopy = gameState.squares.slice();
-    squaresCopy[pos] = gameState.xIsNext ? 'X' : 'O';
-    setGameState({squares: squaresCopy, xIsNext: !gameState.xIsNext});
-  }
 
   const renderSquare = (pos: number) => {
-    return <Square value={gameState.squares[pos]} onClick={() => handleClick(pos)} />;
-  }
-
-  const winner = winnerCalculator(gameState.squares);
-  let status;
-
-  if(winner){
-    status = 'Winner: ' + winner;
-  } else {
-    status = 'Next player ' + (gameState.xIsNext ? 'X' : 'O');
+    return <Square value={props.squares[pos]} onClick={() => props.onClick(pos)} />;
   }
 
   return (<div>
-    <div className='status'>{status}</div>
     <div className='board-row'>
       {renderSquare(0)}
       {renderSquare(1)}
@@ -63,13 +40,55 @@ const Board: React.FC = () => {
   </div>);
 }
 
+interface ISquare {
+  squares: null[] | string[];
+}
+
+interface IGameState {
+  history: ISquare[];
+  xIsNext: boolean;
+}
+
 const Game: React.FC = () => {
-  return(<div className='game'>
+  const [gameHistory, setGameHistory] = React.useState<IGameState>({
+    history: [{
+      squares: Array(9).fill(null)
+    }],
+    xIsNext: true
+  });
+
+  const handleClick = (pos: number): void => {
+    const currentHistory = gameHistory.history;
+    const currentSquares = currentHistory[currentHistory.length - 1].squares.slice();
+    if (winnerCalculator(currentSquares) || currentSquares[pos]) {
+      return;
+    }
+    currentSquares[pos] = gameHistory.xIsNext ? 'X' : 'O';
+    const newHistory = currentHistory.concat([{
+      squares: currentSquares
+    }]);
+
+    setGameHistory({ history: newHistory, xIsNext: !gameHistory.xIsNext });
+  }
+
+  const history = gameHistory.history;
+  const current = history[history.length - 1];
+  const squares = current.squares;
+  const winner = winnerCalculator(squares);
+  let status;
+
+  if(winner){
+    status = 'Winner: ' + winner;
+  } else {
+    status = 'Next ĺayer: ' + (gameHistory.xIsNext ? 'X' : 'O');
+  }
+
+  return (<div className='game'>
     <div>
-      <Board />
+      <Board onClick={handleClick} squares={squares} />
     </div>
     <div className='game-info'>
-      <div> {/* STATUS */} </div>
+      <div> {status} </div>
       <div> {/* TODO */} </div>
     </div>
   </div>);
@@ -87,10 +106,10 @@ const winnerCalculator = (squares: null[] | string[]) => {
     [2, 4, 6]
   ];
 
-  for(let i = 0; i < lines.length; i++){
+  for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
-    if(squares[a] === squares[b] && squares[a] === squares[c]) {
-    // if(squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) { correto
+    if (squares[a] === squares[b] && squares[a] === squares[c]) {
+      // if(squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) { correto
       return squares[a];
     }
     return null;
